@@ -1,0 +1,7 @@
+{
+    "use_wandb" : false,
+    "project_name": "grid cut mix",
+    "entity": "",
+    "name": "baseline"
+
+}
