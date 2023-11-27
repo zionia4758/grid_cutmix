@@ -11,7 +11,7 @@ import util
 from tqdm import tqdm
 from dataset import Animal10
 from wandblog import Logger
-
+import augmentation
 util.setSeed(312)
 
 BATCH_SIZE = 16
@@ -48,7 +48,8 @@ optim = torch.optim.Adam(model.parameters())
 criterion = nn.BCEWithLogitsLoss()
 val_criterion = nn.CrossEntropyLoss()
 cut_mix = v2.CutMix(alpha=0.3, num_classes=10)
-
+sample_loader = DataLoader(train_dataset,batch_size=BATCH_SIZE,shuffle=True)
+grid_cut_mix = augmentation.grid_cut_mix(num_classes=10, shape=[224,224],sample_loader=sample_loader,)
 wandb_logger = Logger(config = {
     'learning_rate' : LR,
     'architecture' : target_model,
@@ -61,9 +62,11 @@ def train():
         model.train()
         acc = 0
         for step, (img,label) in enumerate(tqdm(train_loader)):
+            # img,label = cut_mix(img,label)
+            img,label = grid_cut_mix(img,label)
+
             img = img.to(device)
             label = label.to(device)
-            img,label = cut_mix(img,label)
             optim.zero_grad()
 
             y = model(img)
