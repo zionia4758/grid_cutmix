@@ -3,3 +3,6 @@ images/data_csv.csv
 images/train.csv
 images/test.csv
 __pycache__
+wandb/
+.vscode
+wandb_config.json

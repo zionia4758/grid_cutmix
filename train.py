@@ -10,13 +10,13 @@ import timm
 import util
 from tqdm import tqdm
 from dataset import Animal10
-
+from wandblog import Logger
 
 util.setSeed(312)
 
 BATCH_SIZE = 16
 LR = 0.0001
-EPOCHS = 100
+EPOCHS = 20
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 print(device)
 train_tf = T.Compose([
@@ -35,21 +35,28 @@ train_dataset = Animal10(is_train = True,transform=train_tf)
 test_dataset = Animal10(is_train = False,transform=test_tf)
 
 train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True)
-test_loader = DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=False)
+test_loader = DataLoader(test_dataset, batch_size=4, shuffle=False)
 
 # print(timm.list_models('resnet*'))
-model = timm.create_model('resnet50',pretrained=True, num_classes = 10).to(device)
+target_model = 'resnet18'
+model = timm.create_model(target_model,pretrained=True, num_classes = 10).to(device)
 
 optim = torch.optim.Adam(model.parameters())
 
 criterion = nn.CrossEntropyLoss()
 
-
+wandb_logger = Logger(config = {
+    'learning_rate' : LR,
+    'architecture' : target_model,
+    'batch_size' : BATCH_SIZE,
+    'dataset' : "Animal10",
+    "epochs" : EPOCHS
+})
 def train():
     for epochs in range(EPOCHS):
         model.train()
         acc = 0
-        for (img,label) in tqdm(train_loader):
+        for step, (img,label) in enumerate(tqdm(train_loader)):
             img = img.to(device)
             label = label.to(device)
 
@@ -63,21 +70,34 @@ def train():
             _,y_cls = torch.max(y,1)
             acc += (y_cls == label).sum().item()
 
-        print(f'train acc : {acc}/{len(train_dataset)}')
-
+            wandb_logger.log(
+                {'data':{'train/loss' : loss.item(), 'train_step': (epochs*len(train_loader)+step)},
+                # 'step' : step+(len(train_loader)*epochs)
+                })
+        # print(f'train acc : {acc}/{len(train_data set)}')
+        wandb_logger.log(
+            {'data':{'train/acc':acc/len(train_dataset), 'train_epoch': epochs},
+            #  'step':epochs+1
+            })
+        torch.cuda.empty_cache()
         model.eval()
         acc = 0
+        val_loss = 0
         for (img,label) in tqdm(test_loader):
             img = img.to(device)
             label = label.to(device)
-
-            y = model(img)
-            loss = criterion(y,label)
-
+            with torch.no_grad():
+                y = model(img)
+                loss = criterion(y,label)
+            val_loss += loss.item()//len(test_loader)
             _,y_cls = torch.max(y,1)
             acc += (y_cls == label).sum().item()
-
-        print(f'val acc : {acc}/{len(train_dataset)}')
+        wandb_logger.log(
+            {'data':{'val/acc':acc/len(test_dataset), 'val/loss':val_loss, 'val_epoch':epochs},
+            #  'step':epochs+1
+             })  
+        torch.cuda.empty_cache()
+        # print(f'val acc : {acc}/{len(train_dataset)}')
 
 if __name__ == '__main__':
     train()
