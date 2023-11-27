@@ -2,7 +2,7 @@ import torch
 from torch import nn
 from torch.utils.data import DataLoader
 from torchvision import transforms as T
-
+from torchvision.transforms import v2
 import numpy as np
 
 # import albumentations as A
@@ -40,10 +40,14 @@ test_loader = DataLoader(test_dataset, batch_size=4, shuffle=False)
 # print(timm.list_models('resnet*'))
 target_model = 'resnet18'
 model = timm.create_model(target_model,pretrained=True, num_classes = 10).to(device)
-
 optim = torch.optim.Adam(model.parameters())
 
-criterion = nn.CrossEntropyLoss()
+#baseline기준 CELoss
+# criterion = nn.CrossEntropyLoss()
+#cutmix기준 multi label 이므로 BCEwithLogitLOss
+criterion = nn.BCEWithLogitsLoss()
+val_criterion = nn.CrossEntropyLoss()
+cut_mix = v2.CutMix(alpha=0.3, num_classes=10)
 
 wandb_logger = Logger(config = {
     'learning_rate' : LR,
@@ -59,7 +63,7 @@ def train():
         for step, (img,label) in enumerate(tqdm(train_loader)):
             img = img.to(device)
             label = label.to(device)
-
+            img,label = cut_mix(img,label)
             optim.zero_grad()
 
             y = model(img)
@@ -68,6 +72,10 @@ def train():
             optim.step()
 
             _,y_cls = torch.max(y,1)
+
+            #BCE loss 사용시 
+            _,label = torch.max(label,1)
+
             acc += (y_cls == label).sum().item()
 
             wandb_logger.log(
@@ -80,7 +88,7 @@ def train():
             #  'step':epochs+1
             })
         torch.cuda.empty_cache()
-        model.eval()
+        model.eval()    
         acc = 0
         val_loss = 0
         for (img,label) in tqdm(test_loader):
@@ -88,9 +96,10 @@ def train():
             label = label.to(device)
             with torch.no_grad():
                 y = model(img)
-                loss = criterion(y,label)
+                loss = val_criterion(y,label)
             val_loss += loss.item()//len(test_loader)
             _,y_cls = torch.max(y,1)
+
             acc += (y_cls == label).sum().item()
         wandb_logger.log(
             {'data':{'val/acc':acc/len(test_dataset), 'val/loss':val_loss, 'val_epoch':epochs},
