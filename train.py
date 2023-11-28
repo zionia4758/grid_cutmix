@@ -44,12 +44,13 @@ optim = torch.optim.Adam(model.parameters())
 
 #baseline기준 CELoss
 # criterion = nn.CrossEntropyLoss()
-#cutmix기준 multi label 이므로 BCEwithLogitLOss
+#cutmix기준 multi label 이므로 BCEwithLogitLoss
 criterion = nn.BCEWithLogitsLoss()
 val_criterion = nn.CrossEntropyLoss()
 cut_mix = v2.CutMix(alpha=0.3, num_classes=10)
-sample_loader = DataLoader(train_dataset,batch_size=BATCH_SIZE,shuffle=True)
-grid_cut_mix = augmentation.grid_cut_mix(num_classes=10,grid=6, shape=[224,224],sample_loader=sample_loader,alpha=0.5)
+# sample_loader = DataLoader(train_dataset,batch_size=BATCH_SIZE,shuffle=True)
+# grid_cut_mix = augmentation.grid_cut_mix(num_classes=10,max_grid=7, shape=[224,224])
+grid_cut_mix = augmentation.grid_cut_mix_v3(num_classes=10,grid=28, shape=[224,224])
 wandb_logger = Logger(config = {
     'learning_rate' : LR,
     'architecture' : target_model,
