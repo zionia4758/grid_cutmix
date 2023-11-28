@@ -1,5 +1,6 @@
 import torch
 import numpy as np
+from itertools import cycle
 
 class grid_cut_mix():
     #grid_type is in ['grid','horizontal', 'vertical']
@@ -17,7 +18,7 @@ class grid_cut_mix():
         vertical = torch.repeat_interleave(torch.Tensor([True,False]).bool(),grid)
         vertical = vertical.repeat((shape[1]+2*grid-1)//(2*grid))[:shape[1]].view(-1,1)
         slice_map = torch.zeros(shape,dtype=torch.bool)
-        self.sample_loader = iter(sample_loader)
+        self.sample_loader = cycle(sample_loader)
         if grid_type == 'horizontal':
             slice_map[horizontal[0],:]=True
         elif grid_type == 'vertical':
