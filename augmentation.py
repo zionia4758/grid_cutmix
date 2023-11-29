@@ -18,6 +18,7 @@ class grid_cut_mix():
         vertical = torch.repeat_interleave(torch.Tensor([True,False]).bool(),grid)
         vertical = vertical.repeat((shape[1]+2*grid-1)//(2*grid))[:shape[1]].view(-1,1)
         slice_map = torch.zeros(shape,dtype=torch.bool)
+        #cycle로 할 경우 shuffle이 의미가 없으므로 추후 수정필요
         self.sample_loader = cycle(sample_loader)
         if grid_type == 'horizontal':
             slice_map[horizontal[0],:]=True
@@ -89,18 +90,19 @@ class grid_cut_mix_v3():
     #grid_type is in ['grid','horizontal', 'vertical']
     #현재 버전은 dataset 이미지의 해상도가 동일할때 적용 가능
     #v3. p 파라메터 제거, random scale grid 제거
-    def __init__(self, num_classes,shape:list,grid=6,grid_type='grid'):
+    def __init__(self, num_classes,shape:list,grid=6,grid_type='grid',max_ratio=2):
         self.grid = grid
         self.grid_type = grid_type
         self.num_classes = num_classes
         self.shape=shape
+        self.max_ratio = max_ratio
         if len(shape) != 2:
             raise ValueError("2차원 배열만 사용 가능합니다.")
         if grid_type not in ['grid','horizontal','vertical']:
             raise ValueError("grid type이 허용되지 않은 종류입니다.")
     def __call__(self,img,label):
         #1/2~ 1/4비율로 섞기
-        ratio = np.random.randint(2,4)
+        ratio = np.random.randint(2,self.max_ratio+1)
         true_idx = np.random.randint(ratio)
         grid = self.grid
         if self.grid_type =='horizontal' :
@@ -127,7 +129,8 @@ class grid_cut_mix_v3():
         label = torch.nn.functional.one_hot(label,self.num_classes).float()
         shuffle_label = label.clone()
         shuffle_label = shuffle_label/ratio
-        shuffle_label += label[shuffle_idx]*(1-1/ratio)
+        shuffle_label += label[shuffle_idx]*(1-(1/ratio))
+        # shuffle_label = torch.clip(shuffle_label,max=0.9)
         shuffle_img = img.clone()
         shuffle_img[:,slice_map] = img[shuffle_idx][:,slice_map]
         return shuffle_img, shuffle_label

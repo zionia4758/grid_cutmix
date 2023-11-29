@@ -1,6 +1,6 @@
 import torch
 from torch import nn
-from torch.utils.data import Dataset, dataloader
+from torch.utils.data import Dataset, DataLoader
 from torchvision.io import read_image
 
 import pandas as pd
@@ -32,7 +32,3 @@ class Animal10(Dataset):
         label_data = self.class_idx[img_serial['class']]
         # print(img_data.shape, label_data)
         return img_data,label_data
-
-a=Animal10(True)
-for i in range(1):
-    a.__getitem__(i)
