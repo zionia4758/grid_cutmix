@@ -10,25 +10,25 @@ v5의 경우 grid영역을 균일하게 섞으며 라벨을 0.5:0.5로 분배합
 ## 예시
 cutmix  
 ![cutmix](./readme_img/cutmix.png)   
-grid_cutmix_v4 grid28
+grid_cutmix_v4 grid28  
 ![grid28](./readme_img/gridcutmix_v4_grid28.png)  
-grid_cutmix_v4 grid56
+grid_cutmix_v4 grid56  
 ![grid56](./readme_img/gridcutmix_v4_grid56.png)  
-grid_cutmix_v5
+grid_cutmix_v5  
 ![v5](./readme_img/gridcutmix_v5.png)  
 
 ## 실험
 실험에 사용된 데이터셋은 캐글의 Animals-10을 사용하였습니다.  
 (https://www.kaggle.com/datasets/alessiocorrado99/animals10)
 
-Resnet 실험 결과
+Resnet 실험 결과  
 ![Resnet](./readme_img/resnet_result.PNG)  
 CNN 계열의 Resnet 모델을 사용했으며, timm의 resnet18을 사용했습니다.  
 전반적으로 CNN 모델에서 grid_cutmix의 성능은 cutmix보다 낮음을 알 수 있었습니다.  
 또한, grid_cutmix의 성능을 높이기 위해서는 낮은 grid보다는 높은 grid로 갈수록 학습 성능이 좋다는 것을 알 수 있었습니다.  
 현재 실험 환경의 한계로 224*224 input 이미지를 사용하였고, 그에 따라 grid를 56까지 실험했으나, 더 큰 모델과 높은 해상도를 사용한다면 높은 grid를 통해 더 나은 성능 개선을 기대합니다.
 
-ViT 실험 결과
+ViT 실험 결과  
 ![VIT](./readme_img/vit_result.PNG)  
 Transformer 계열의 ViT 모델을 사용하였으며, timm의 vit-tiny-patch16 모델을 사용했습니다.  
 Transformer 계열의 경우, cutmix기법이 학습에 큰 영향을 끼치지 못하는 것을 확인했습니다. grid_cutmix의 경우, patch 사이즈의 절반인 grid 8을 적용했을때, 약간의 학습 성능gi 개선이 이루어지는 것을 확인했습니다.
