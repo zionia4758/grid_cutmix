@@ -23,11 +23,13 @@ train_tf = T.Compose([
     T.ToTensor(),
     T.Resize((224,224)),
     T.Normalize((0.485,0.456,0.406),(0.229,0.224,0.225)),
+    # T.Normalize((0.5,0.5,0.5),(0.5,0.5,0.5)),
     T.RandomHorizontalFlip(),
 ])
 test_tf = T.Compose([
     T.ToTensor(),
     T.Normalize((0.485,0.456,0.406),(0.229,0.224,0.225)),
+    # T.Normalize((0.5,0.5,0.5),(0.5,0.5,0.5)),
     T.Resize((224,224)),
 ])
 
@@ -39,6 +41,7 @@ test_loader = DataLoader(test_dataset, batch_size=4, shuffle=False)
 
 # print(timm.list_models('resnet*'))
 target_model = 'resnet18'
+# target_model = 'vit_tiny_patch16_224'
 model = timm.create_model(target_model,pretrained=True, num_classes = 10).to(device)
 optim = torch.optim.Adam(model.parameters())
 
@@ -47,10 +50,12 @@ optim = torch.optim.Adam(model.parameters())
 #cutmix기준 multi label 이므로 BCEwithLogitLoss
 criterion = nn.BCEWithLogitsLoss()
 val_criterion = nn.CrossEntropyLoss()
+
 cut_mix = v2.CutMix(alpha=0.3, num_classes=10)
 # sample_loader = DataLoader(train_dataset,batch_size=BATCH_SIZE,shuffle=True)
 # grid_cut_mix = augmentation.grid_cut_mix(num_classes=10,max_grid=7, shape=[224,224])
-grid_cut_mix = augmentation.grid_cut_mix_v3(num_classes=10,grid=56, shape=[224,224],max_ratio=2)
+# grid_cut_mix = augmentation.grid_cut_mix_v3(num_classes=10,grid=56, shape=[224,224],max_ratio=2)
+grid_cut_mix = augmentation.grid_cut_mix_v5(num_classes=10,grid=56, shape=[224,224],max_ratio=2)
 wandb_logger = Logger(config = {
     'learning_rate' : LR,
     'architecture' : target_model,

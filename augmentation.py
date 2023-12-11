@@ -134,3 +134,96 @@ class grid_cut_mix_v3():
         shuffle_img = img.clone()
         shuffle_img[:,slice_map] = img[shuffle_idx][:,slice_map]
         return shuffle_img, shuffle_label
+    
+class grid_cut_mix_v4():
+    #grid_type is in ['grid','horizontal', 'vertical']
+    #현재 버전은 dataset 이미지의 해상도가 동일할때 적용 가능
+    #v4. 그리드 섞기 랜덤으로 변경
+    def __init__(self, num_classes,shape:list,grid=6,grid_type='grid',max_ratio=2):
+        self.grid = grid
+        self.grid_type = grid_type
+        self.num_classes = num_classes
+        self.shape=shape
+        self.max_ratio = max_ratio
+        if len(shape) != 2:
+            raise ValueError("2차원 배열만 사용 가능합니다.")
+        if grid_type not in ['grid','horizontal','vertical']:
+            raise ValueError("grid type이 허용되지 않은 종류입니다.")
+    def __call__(self,img,label):
+        #1/2~ 1/4비율로 섞기
+        #
+        ratio = np.random.randint(2,self.max_ratio+1)
+        true_idx = np.random.randint(ratio)
+        grid = self.grid
+        if self.grid_type =='horizontal' :
+            horizontal = torch.zeros(ratio).bool()
+            horizontal[true_idx] = True
+            horizontal = horizontal.repeat_interleave(grid)
+            horizontal = horizontal.repeat((self.shape[1]+2*grid-1)//(2*grid))[:self.shape[1]].view(-1,1).repeat(1,self.shape[1])
+            slice_map = horizontal
+        elif self.grid_type == 'vertical':
+            vertical = torch.zeros(ratio).bool()
+            vertical[true_idx] = True
+            vertical = vertical.repeat_interleave(grid)
+            vertical = vertical.repeat((self.shape[1]+2*grid-1)//(2*grid))[:self.shape[1]].view(1,-1).repeat(self.shape[0],1)
+            slice_map = vertical
+        elif self.grid_type == 'grid':
+            reduce_h = (self.shape[0]+grid-1)//grid
+            reduce_w = (self.shape[1]+grid-1)//grid
+            slice_map = torch.randint(0,2,(reduce_h,reduce_w),dtype=torch.bool)
+            #속도를 위해 원본해상도가 아닌 slice_map을 카운트
+            total_cnt = slice_map.numel()
+            original_ratio = (total_cnt-slice_map.count_nonzero().item())/total_cnt
+        
+            slice_map = slice_map.repeat_interleave(grid,1).repeat_interleave(grid,0)[:self.shape[0], :self.shape[1]]
+            slice_map = slice_map.repeat(3,1,1)
+        shuffle_idx = torch.randperm(img.shape[0])
+        label = torch.nn.functional.one_hot(label,self.num_classes).float()
+        shuffle_label = label.clone()
+        shuffle_label = shuffle_label*original_ratio + label[shuffle_idx]*(1-original_ratio)
+
+        shuffle_img = img.clone()
+        shuffle_img[:,slice_map] = img[shuffle_idx][:,slice_map]
+        return shuffle_img, shuffle_label
+    
+class grid_cut_mix_v5():
+    #grid_type is in ['grid','horizontal', 'vertical']
+    #현재 버전은 dataset 이미지의 해상도가 동일할때 적용 가능
+    #v4. 그리드 섞기 랜덤으로 변경
+    def __init__(self, num_classes,shape:list,grid=6,grid_type='grid',max_ratio=2):
+        self.grid = grid
+        self.grid_type = grid_type
+        self.num_classes = num_classes
+        self.shape=shape
+        self.max_ratio = max_ratio
+        if len(shape) != 2:
+            raise ValueError("2차원 배열만 사용 가능합니다.")
+        if grid_type not in ['grid','horizontal','vertical']:
+            raise ValueError("grid type이 허용되지 않은 종류입니다.")
+    def __call__(self,img,label):
+        #1/2~ 1/4비율로 섞기
+        #
+        ratio = np.random.randint(2,self.max_ratio+1)
+        true_idx = np.random.randint(ratio)
+        grid = self.grid
+        horizontal = torch.zeros(ratio).bool()
+        horizontal[true_idx] = True
+        horizontal = horizontal.repeat_interleave(grid)
+        horizontal = horizontal.repeat((self.shape[1]+2*grid-1)//(2*grid))[:self.shape[1]].view(-1,1).repeat(1,self.shape[1])
+
+        vertical = torch.zeros(ratio).bool()
+        vertical[true_idx] = True
+        vertical = vertical.repeat_interleave(grid)
+        vertical = vertical.repeat((self.shape[1]+2*grid-1)//(2*grid))[:self.shape[1]].view(1,-1).repeat(self.shape[0],1)
+        slice_map = vertical
+        slice_map = horizontal*vertical + (~horizontal*~vertical)
+        slice_map = slice_map.repeat(3,1,1)
+
+        shuffle_idx = torch.randperm(img.shape[0])
+        label = torch.nn.functional.one_hot(label,self.num_classes).float()
+        shuffle_label = label.clone()
+        shuffle_label = shuffle_label*0.5 + label[shuffle_idx]*0.5
+
+        shuffle_img = img.clone()
+        shuffle_img[:,slice_map] = img[shuffle_idx][:,slice_map]
+        return shuffle_img, shuffle_label
